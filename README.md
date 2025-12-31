@@ -11,7 +11,7 @@ A modern fashion e-commerce website built with Next.js 14 (App Router), Tailwind
 - 📄 Dynamic product detail pages
 - 🎨 Modern dark theme UI with premium streetwear aesthetic
 
-## Tech Stack
+## Tech Stackyes
 
 - Next.js 14 (App Router)
 - React 18
