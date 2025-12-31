@@ -198,11 +198,16 @@ for (let i = 1; i < lines.length; i++) {
       }
       
       // Parse prices (remove £, $ and commas)
-      const priceStr = (row.original_price || row.price || '').replace(/[£$,]/g, '');
-      const discountPriceStr = (row.price || '').replace(/[£$,]/g, '');
+      const priceStr = (row.original_price || row.price || '').replace(/[£$,]/g, '').trim();
+      const discountPriceStr = (row.price || '').replace(/[£$,]/g, '').trim();
       
-      const price = priceStr ? parseFloat(priceStr) : 299.99;
-      const discountPrice = discountPriceStr && discountPriceStr !== priceStr ? parseFloat(discountPriceStr) : null;
+      // Parse and validate prices
+      const parsedPrice = priceStr ? parseFloat(priceStr) : null;
+      const parsedDiscountPrice = discountPriceStr && discountPriceStr !== priceStr ? parseFloat(discountPriceStr) : null;
+      
+      // Ensure prices are valid numbers (not NaN)
+      const price = (parsedPrice && !isNaN(parsedPrice) && parsedPrice > 0) ? parsedPrice : 299.99;
+      const discountPrice = (parsedDiscountPrice && !isNaN(parsedDiscountPrice) && parsedDiscountPrice > 0) ? parsedDiscountPrice : null;
       
       // Find matching local image or use image_url
       const localImage = findImage(title, imageFiles);

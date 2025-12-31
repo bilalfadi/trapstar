@@ -18,9 +18,13 @@ export default function ProductPage({ params }: ProductPageProps) {
   }
 
   // Calculate discount percentage
-  const discountPercent = product.discountPrice && product.price
+  const discountPercent = product.discountPrice && product.price && product.price > 0
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : null
+  
+  // Ensure prices are valid numbers
+  const displayPrice = product.price || 0
+  const displayDiscountPrice = product.discountPrice || null
 
   // Generate random social proof numbers based on product ID for consistency
   const itemsSold = 5 + (product.id % 25) // Random between 5-29
@@ -50,9 +54,9 @@ export default function ProductPage({ params }: ProductPageProps) {
           
           {/* Price with Discount Badge */}
           <div className="mb-4">
-            {product.discountPrice ? (
+            {displayDiscountPrice ? (
               <div className="flex items-center space-x-3 mb-2">
-                <span className="text-2xl md:text-3xl font-bold text-white">${product.discountPrice.toFixed(2)}</span>
+                <span className="text-2xl md:text-3xl font-bold text-white">${displayDiscountPrice.toFixed(2)}</span>
                 {discountPercent && (
                   <span className="bg-red-600 text-white px-2 py-1 text-xs font-bold">
                     -{discountPercent}%
@@ -60,13 +64,13 @@ export default function ProductPage({ params }: ProductPageProps) {
                 )}
               </div>
             ) : (
-              <span className="text-2xl md:text-3xl font-bold text-white">${product.price.toFixed(2)}</span>
+              <span className="text-2xl md:text-3xl font-bold text-white">${displayPrice.toFixed(2)}</span>
             )}
-            {product.discountPrice && (
+            {displayDiscountPrice && displayPrice > 0 && (
               <div className="text-gray-500 text-sm">
-                <span className="line-through">${product.price.toFixed(2)}</span>
-                <span className="ml-2">Original price was: ${product.price.toFixed(2)}.</span>
-                <span className="text-white ml-1">${product.discountPrice.toFixed(2)} Current price is: ${product.discountPrice.toFixed(2)}.</span>
+                <span className="line-through">${displayPrice.toFixed(2)}</span>
+                <span className="ml-2">Original price was: ${displayPrice.toFixed(2)}.</span>
+                <span className="text-white ml-1">${displayDiscountPrice.toFixed(2)} Current price is: ${displayDiscountPrice.toFixed(2)}.</span>
               </div>
             )}
           </div>

@@ -5,10 +5,11 @@ export interface Product {
   title: string
   slug: string
   category: string
-  price: number
+  price: number | null
   discountPrice: number | null
   image: string
   description: string
+  brand?: string
 }
 
 // Get all products
