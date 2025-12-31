@@ -7,10 +7,11 @@ interface Product {
   title: string
   slug: string
   category: string
-  price: number
+  price: number | null
   discountPrice: number | null
   image: string
   description: string
+  brand?: string
 }
 
 interface ProductCardProps {
@@ -18,9 +19,13 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  // Ensure prices are valid numbers
+  const displayPrice = product.price || 0
+  const displayDiscountPrice = product.discountPrice || null
+  
   // Calculate discount percentage
-  const discountPercent = product.discountPrice && product.price
-    ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
+  const discountPercent = displayDiscountPrice && displayPrice > 0
+    ? Math.round(((displayPrice - displayDiscountPrice) / displayPrice) * 100)
     : null
 
   return (
@@ -54,13 +59,13 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.title}
           </h3>
           <div className="flex items-center space-x-2">
-            {product.discountPrice ? (
+            {displayDiscountPrice ? (
               <>
-                <span className="text-white font-semibold text-sm md:text-base">${product.discountPrice.toFixed(2)}</span>
-                <span className="text-gray-500 line-through text-xs md:text-sm">${product.price.toFixed(2)}</span>
+                <span className="text-white font-semibold text-sm md:text-base">${displayDiscountPrice.toFixed(2)}</span>
+                <span className="text-gray-500 line-through text-xs md:text-sm">${displayPrice.toFixed(2)}</span>
               </>
             ) : (
-              <span className="text-white font-semibold text-sm md:text-base">${product.price.toFixed(2)}</span>
+              <span className="text-white font-semibold text-sm md:text-base">${displayPrice.toFixed(2)}</span>
             )}
           </div>
         </div>
