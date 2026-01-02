@@ -1,3 +1,21 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Contact Us | Trapstar Official | trapstarofficial.store',
+  description: 'Contact Trapstar Official for customer support, inquiries, or assistance. Email us at support@trapstarofficial.store or visit our warehouse in Glendale, CA.',
+  keywords: 'Contact Trapstar, Trapstar support, Trapstar customer service, trapstarofficial.store',
+  openGraph: {
+    title: 'Contact Us | Trapstar Official',
+    description: 'Contact Trapstar Official for customer support, inquiries, or assistance.',
+    url: 'https://trapstarofficial.store/contact-us',
+    siteName: 'Trapstar Official',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://trapstarofficial.store/contact-us',
+  },
+}
+
 export default function ContactUs() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

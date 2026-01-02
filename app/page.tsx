@@ -2,6 +2,38 @@ import { getProductsByCategoryAndBrand } from '@/lib/products'
 import ProductGrid from '@/components/ProductGrid'
 import Image from 'next/image'
 import Link from 'next/link'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Trapstar Official Store - Premium Streetwear Collection | trapstarofficial.store',
+  description: 'Shop the latest Trapstar collection featuring premium tracksuits, jackets, shorts, t-shirts, bags, and hoodies. Official Trapstar streetwear with bold designs and quality materials. Free shipping available.',
+  keywords: 'Trapstar, Trapstar Official, streetwear, tracksuits, jackets, hoodies, t-shirts, bags, premium streetwear, trapstarofficial.store',
+  openGraph: {
+    title: 'Trapstar Official Store - Premium Streetwear Collection',
+    description: 'Shop the latest Trapstar collection featuring premium tracksuits, jackets, shorts, t-shirts, bags, and hoodies.',
+    url: 'https://trapstarofficial.store',
+    siteName: 'Trapstar Official',
+    images: [
+      {
+        url: 'https://trapstarofficial.store/trapstar.webp',
+        width: 1200,
+        height: 630,
+        alt: 'Trapstar Official Store',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Trapstar Official Store - Premium Streetwear Collection',
+    description: 'Shop the latest Trapstar collection featuring premium tracksuits, jackets, shorts, t-shirts, bags, and hoodies.',
+    images: ['https://trapstarofficial.store/trapstar.webp'],
+  },
+  alternates: {
+    canonical: 'https://trapstarofficial.store',
+  },
+}
 
 export default function Home() {
   // Get Trapstar products by category for homepage sections (only categories with Trapstar products)
@@ -139,6 +171,43 @@ export default function Home() {
           </div>
         </section>
       </div>
+
+      {/* Structured Data - Organization */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Trapstar Official',
+            url: 'https://trapstarofficial.store',
+            logo: 'https://trapstarofficial.store/trapstar.webp',
+            description: 'Official Trapstar streetwear store featuring premium tracksuits, jackets, shorts, t-shirts, bags, and hoodies.',
+            sameAs: [],
+          }),
+        }}
+      />
+
+      {/* Structured Data - WebSite with SearchAction */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Trapstar Official',
+            url: 'https://trapstarofficial.store',
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: {
+                '@type': 'EntryPoint',
+                urlTemplate: 'https://trapstarofficial.store/search?q={search_term_string}',
+              },
+              'query-input': 'required name=search_term_string',
+            },
+          }),
+        }}
+      />
     </>
   )
 }

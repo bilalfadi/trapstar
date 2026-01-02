@@ -29,7 +29,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     : null
 
   return (
-    <Link href={`/product/${product.slug}`} className="group block">
+    <Link href={`/${product.slug}`} className="group block">
       <div className="relative overflow-hidden bg-gray-900 rounded-lg">
         {/* Discount Badge */}
         {discountPercent && (

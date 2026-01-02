@@ -1,3 +1,21 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'About Us | Trapstar Official | trapstarofficial.store',
+  description: 'Learn about Trapstar Official - an alternative streetwear brand mixing dark, rebellious cyberpunk and Christian-inspired themes. Founded in 2020, we\'re about "finding stars in hell."',
+  keywords: 'Trapstar, About Trapstar, Trapstar brand, streetwear brand, trapstarofficial.store',
+  openGraph: {
+    title: 'About Us | Trapstar Official',
+    description: 'Learn about Trapstar Official - an alternative streetwear brand mixing dark, rebellious cyberpunk and Christian-inspired themes.',
+    url: 'https://trapstarofficial.store/about-us',
+    siteName: 'Trapstar Official',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://trapstarofficial.store/about-us',
+  },
+}
+
 export default function AboutUs() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

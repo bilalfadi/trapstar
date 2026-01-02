@@ -1,3 +1,25 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | Trapstar Official | trapstarofficial.store',
+  description: 'Trapstar Official Privacy Policy - Learn how we collect, use, and safeguard your personal information. We are committed to protecting your privacy.',
+  keywords: 'Trapstar Privacy Policy, privacy, data protection, trapstarofficial.store',
+  openGraph: {
+    title: 'Privacy Policy | Trapstar Official',
+    description: 'Trapstar Official Privacy Policy - Learn how we collect, use, and safeguard your personal information.',
+    url: 'https://trapstarofficial.store/privacy-policy',
+    siteName: 'Trapstar Official',
+    type: 'website',
+  },
+  alternates: {
+    canonical: 'https://trapstarofficial.store/privacy-policy',
+  },
+  robots: {
+    index: false,
+    follow: true,
+  },
+}
+
 export default function PrivacyPolicy() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

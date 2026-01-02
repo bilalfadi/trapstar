@@ -1,5 +1,27 @@
 import { getAllProducts } from '@/lib/products'
 import ProductGrid from '@/components/ProductGrid'
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Shop All Trapstar Products | Complete Collection | trapstarofficial.store',
+  description: 'Browse the complete Trapstar collection featuring tracksuits, jackets, shorts, t-shirts, bags, and hoodies. Premium streetwear with bold designs. Free shipping available.',
+  keywords: 'Trapstar, shop Trapstar, Trapstar collection, streetwear, tracksuits, jackets, hoodies, t-shirts, bags, trapstarofficial.store',
+  openGraph: {
+    title: 'Shop All Trapstar Products | Complete Collection',
+    description: 'Browse the complete Trapstar collection featuring tracksuits, jackets, shorts, t-shirts, bags, and hoodies. Premium streetwear with bold designs.',
+    url: 'https://trapstarofficial.store/store',
+    siteName: 'Trapstar Official',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Shop All Trapstar Products | Complete Collection',
+    description: 'Browse the complete Trapstar collection featuring premium streetwear.',
+  },
+  alternates: {
+    canonical: 'https://trapstarofficial.store/store',
+  },
+}
 
 export default function StorePage() {
   const allProducts = getAllProducts()
@@ -32,6 +54,34 @@ export default function StorePage() {
           </p>
         </div>
       </div>
+
+      {/* Structured Data - CollectionPage */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'CollectionPage',
+            name: 'Trapstar Complete Collection',
+            description: 'Browse the complete Trapstar collection featuring tracksuits, jackets, shorts, t-shirts, bags, and hoodies.',
+            url: 'https://trapstarofficial.store/store',
+            mainEntity: {
+              '@type': 'ItemList',
+              numberOfItems: allProducts.length,
+              itemListElement: allProducts.slice(0, 20).map((product, index) => ({
+                '@type': 'ListItem',
+                position: index + 1,
+                item: {
+                  '@type': 'Product',
+                  name: product.title,
+                  url: `https://trapstarofficial.store/${product.slug}`,
+                  image: product.image.startsWith('http') ? product.image : `https://trapstarofficial.store${product.image}`,
+                },
+              })),
+            },
+          }),
+        }}
+      />
     </div>
   )
 }
