@@ -1,37 +1,23 @@
-import { getAllProducts, getProductsByBrand } from '@/lib/products'
+import { getAllProducts } from '@/lib/products'
 import ProductGrid from '@/components/ProductGrid'
 
 export default function StorePage() {
   const allProducts = getAllProducts()
-  const hellstarProducts = getProductsByBrand('hellstar')
-  const trapstarProducts = getProductsByBrand('trapstar')
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
       <div className="mb-8 md:mb-12">
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 md:mb-4">Shop</h1>
-        <p className="text-gray-400 mb-4 md:mb-6 text-sm md:text-base">Browse our complete collection</p>
+        <p className="text-gray-400 mb-4 md:mb-6 text-sm md:text-base">Browse our complete Trapstar collection</p>
       </div>
 
-      {/* Hellstar Products Section */}
-      {hellstarProducts.length > 0 && (
-        <section className="mb-16 md:mb-20">
-          <div className="mb-6 md:mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Hellstar Collection</h2>
-            <p className="text-gray-400 mb-4 text-sm md:text-base">{hellstarProducts.length} products available</p>
-          </div>
-          <ProductGrid products={hellstarProducts} />
-        </section>
-      )}
-
       {/* Trapstar Products Section */}
-      {trapstarProducts.length > 0 && (
+      {allProducts.length > 0 && (
         <section className="mb-16 md:mb-20">
           <div className="mb-6 md:mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Trapstar Collection</h2>
-            <p className="text-gray-400 mb-4 text-sm md:text-base">{trapstarProducts.length} products available</p>
+            <p className="text-gray-400 mb-4 text-sm md:text-base">{allProducts.length} products available</p>
           </div>
-          <ProductGrid products={trapstarProducts} />
+          <ProductGrid products={allProducts} />
         </section>
       )}
       

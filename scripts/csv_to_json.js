@@ -223,6 +223,11 @@ for (let i = 1; i < lines.length; i++) {
       // Determine brand
       const brand = (row.brand || '').trim() || (titleLower.includes('trapstar') ? 'Trapstar' : 'Hellstar');
       
+      // Only include Trapstar products - skip Hellstar
+      if (brand.toLowerCase() !== 'trapstar' && !titleLower.includes('trapstar')) {
+        continue;
+      }
+      
       const product = {
         id: products.length + 1,
         title: title,
@@ -232,7 +237,7 @@ for (let i = 1; i < lines.length; i++) {
         discountPrice: discountPrice,
         image: imagePath,
         description: row.description || title,
-        brand: brand
+        brand: 'Trapstar'
       };
       
       products.push(product);

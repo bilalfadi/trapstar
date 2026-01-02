@@ -37,21 +37,23 @@ export function searchProducts(query: string): Product[] {
   ) as Product[]
 }
 
-// Get products by brand (Hellstar or Trapstar)
+// Get products by brand (Trapstar only)
 export function getProductsByBrand(brand: 'hellstar' | 'trapstar'): Product[] {
-  const brandLower = brand.toLowerCase()
-  return productsData.filter((product) => {
-    const titleLower = product.title.toLowerCase()
-    return titleLower.includes(brandLower)
-  }) as Product[]
+  // Only Trapstar products are available
+  if (brand.toLowerCase() !== 'trapstar') {
+    return []
+  }
+  return productsData as Product[]
 }
 
-// Get products by category and brand
+// Get products by category and brand (Trapstar only)
 export function getProductsByCategoryAndBrand(category: string, brand: 'hellstar' | 'trapstar'): Product[] {
-  const brandLower = brand.toLowerCase()
+  // Only Trapstar products are available
+  if (brand.toLowerCase() !== 'trapstar') {
+    return []
+  }
   return productsData.filter((product) => {
-    const titleLower = product.title.toLowerCase()
-    return product.category === category && titleLower.includes(brandLower)
+    return product.category === category
   }) as Product[]
 }
 

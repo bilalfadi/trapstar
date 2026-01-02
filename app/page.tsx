@@ -19,7 +19,7 @@ export default function Home() {
       <section className="relative w-full bg-black border-b border-gray-900">
         <div className="relative w-full" style={{ height: '70vh', minHeight: '500px' }}>
           <Image
-            src="/cc.jpg"
+            src="/trapstar.webp"
             alt="Trapstar Official Hero"
             fill
             className="object-contain"
