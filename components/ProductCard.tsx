@@ -18,6 +18,7 @@ interface Product {
 
 interface ProductCardProps {
   product: Product
+  priority?: boolean
 }
 
 export default function ProductCard({ product, priority = false }: ProductCardProps) {
