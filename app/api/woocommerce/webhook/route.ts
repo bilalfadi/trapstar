@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Clear products cache - this will force fresh fetch on next request
-    clearProductsCache()
+    await clearProductsCache()
     console.log('🗑️  Products cache cleared - next request will fetch fresh data from WooCommerce')
 
     // Pre-fetch products to warm up the cache (same system as other pages)

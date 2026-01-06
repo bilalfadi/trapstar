@@ -2,9 +2,9 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { searchProductsSync } from '@/lib/products'
+import { searchProductsSync } from '@/lib/products-client'
 import ProductGrid from '@/components/ProductGrid'
-import type { Product } from '@/lib/products'
+import type { Product } from '@/lib/products-client'
 
 function SearchContent() {
   const searchParams = useSearchParams()

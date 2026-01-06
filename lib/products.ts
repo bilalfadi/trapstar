@@ -1,5 +1,19 @@
 import productsData from '@/data/products.json'
-import { getCachedProducts, saveProductsToCache, invalidateCache } from './cache'
+// Cache functions are server-side only - use dynamic imports
+// This prevents 'fs' module from being bundled in client-side code
+
+// Helper function to get cache functions (server-side only)
+async function getCacheFunctions() {
+  if (typeof window !== 'undefined') {
+    return null
+  }
+  const cacheModule = await import('./cache')
+  return {
+    getCachedProducts: cacheModule.getCachedProducts,
+    saveProductsToCache: cacheModule.saveProductsToCache,
+    invalidateCache: cacheModule.invalidateCache
+  }
+}
 
 export interface Product {
   id: number
@@ -202,11 +216,14 @@ export async function getAllProducts(): Promise<Product[]> {
     if (typeof window === 'undefined') {
       // Server-side: Check persistent cache first (BEFORE any fetch)
       // This is CRITICAL - cache check must happen before any fetch
-      const cachedProducts = getCachedProducts()
-      if (cachedProducts && cachedProducts.length > 0) {
-        console.log(`💾 Using cached products (${cachedProducts.length} products) - NO FETCH, cache valid until webhook or 1 hour`)
-        productsCache = { products: cachedProducts, timestamp: now }
-        return cachedProducts
+      const cacheFuncs = await getCacheFunctions()
+      if (cacheFuncs) {
+        const cachedProducts = cacheFuncs.getCachedProducts()
+        if (cachedProducts && cachedProducts.length > 0) {
+          console.log(`💾 Using cached products (${cachedProducts.length} products) - NO FETCH, cache valid until webhook or 1 hour`)
+          productsCache = { products: cachedProducts, timestamp: now }
+          return cachedProducts
+        }
       }
 
       // Cache miss - check if fetch is already in progress
@@ -215,21 +232,27 @@ export async function getAllProducts(): Promise<Product[]> {
         try {
           const products = await fetchInProgress
           // After fetch completes, check cache again (might have been saved by the fetch)
-          const freshCache = getCachedProducts()
-          if (freshCache && freshCache.length > 0) {
-            console.log(`✅ Using products from completed fetch (${freshCache.length} products)`)
-            productsCache = { products: freshCache, timestamp: now }
-            return freshCache
+          const cacheFuncs = await getCacheFunctions()
+          if (cacheFuncs) {
+            const freshCache = cacheFuncs.getCachedProducts()
+            if (freshCache && freshCache.length > 0) {
+              console.log(`✅ Using products from completed fetch (${freshCache.length} products)`)
+              productsCache = { products: freshCache, timestamp: now }
+              return freshCache
+            }
           }
           productsCache = { products, timestamp: now }
           return products
         } catch (error) {
           // If fetch failed, check cache one more time
-          const fallbackCache = getCachedProducts()
-          if (fallbackCache && fallbackCache.length > 0) {
-            console.log(`⚠️  Fetch failed, using cached products (${fallbackCache.length} products)`)
-            productsCache = { products: fallbackCache, timestamp: now }
-            return fallbackCache
+          const cacheFuncs = await getCacheFunctions()
+          if (cacheFuncs) {
+            const fallbackCache = cacheFuncs.getCachedProducts()
+            if (fallbackCache && fallbackCache.length > 0) {
+              console.log(`⚠️  Fetch failed, using cached products (${fallbackCache.length} products)`)
+              productsCache = { products: fallbackCache, timestamp: now }
+              return fallbackCache
+            }
           }
           throw error
         }
@@ -252,8 +275,11 @@ export async function getAllProducts(): Promise<Product[]> {
           
           // Save to persistent cache only if fetch was successful
           if (products && products.length > 0) {
-            saveProductsToCache(products)
-            console.log(`💾 Products saved to cache - will use cached data for next 1 hour or until webhook invalidates`)
+            const cacheFuncs = await getCacheFunctions()
+            if (cacheFuncs) {
+              cacheFuncs.saveProductsToCache(products)
+              console.log(`💾 Products saved to cache - will use cached data for next 1 hour or until webhook invalidates`)
+            }
           }
           
           return products
@@ -276,11 +302,14 @@ export async function getAllProducts(): Promise<Product[]> {
         // If fetch fails with 502/503/504, check extended cache
         if (fetchError.message?.includes('502') || fetchError.message?.includes('503') || fetchError.message?.includes('504')) {
           console.warn('⚠️  WooCommerce server error detected, checking extended cache...')
-          const extendedCache = getCachedProducts()
-          if (extendedCache && extendedCache.length > 0) {
-            console.log(`✅ Using extended cache (${extendedCache.length} products) - WooCommerce server is down`)
-            productsCache = { products: extendedCache, timestamp: now }
-            return extendedCache
+          const cacheFuncs = await getCacheFunctions()
+          if (cacheFuncs) {
+            const extendedCache = cacheFuncs.getCachedProducts()
+            if (extendedCache && extendedCache.length > 0) {
+              console.log(`✅ Using extended cache (${extendedCache.length} products) - WooCommerce server is down`)
+              productsCache = { products: extendedCache, timestamp: now }
+              return extendedCache
+            }
           }
         }
         // Re-throw error to be handled by outer catch
@@ -316,11 +345,14 @@ export async function getAllProducts(): Promise<Product[]> {
     
     // If we have cached products, return them even if fresh fetch failed
     if (typeof window === 'undefined') {
-      const cachedProducts = getCachedProducts()
-      if (cachedProducts && cachedProducts.length > 0) {
-        console.log(`⚠️  WooCommerce fetch failed, but using cached products (${cachedProducts.length} products)`)
-        productsCache = { products: cachedProducts, timestamp: Date.now() }
-        return cachedProducts
+      const cacheFuncs = await getCacheFunctions()
+      if (cacheFuncs) {
+        const cachedProducts = cacheFuncs.getCachedProducts()
+        if (cachedProducts && cachedProducts.length > 0) {
+          console.log(`⚠️  WooCommerce fetch failed, but using cached products (${cachedProducts.length} products)`)
+          productsCache = { products: cachedProducts, timestamp: Date.now() }
+          return cachedProducts
+        }
       }
     }
     
@@ -331,8 +363,13 @@ export async function getAllProducts(): Promise<Product[]> {
 }
 
 // Export function to invalidate cache (used by webhook)
-export function clearProductsCache(): void {
-  invalidateCache()
+export async function clearProductsCache(): Promise<void> {
+  if (typeof window === 'undefined') {
+    const cacheFuncs = await getCacheFunctions()
+    if (cacheFuncs) {
+      cacheFuncs.invalidateCache()
+    }
+  }
   productsCache = null
   fetchInProgress = null // Clear fetch lock on cache invalidation
 }

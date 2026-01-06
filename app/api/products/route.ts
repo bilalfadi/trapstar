@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
-import { getCachedProducts, saveProductsToCache } from '@/lib/cache'
 import https from 'https'
+// Cache functions - dynamic import to prevent client-side bundling
 
 // Cache products for 1 hour, but can be invalidated by webhook
 export const revalidate = 3600 // 1 hour
@@ -236,7 +236,8 @@ export async function GET(request: Request) {
       
       // Convert and cache all products
       const convertedAll = convertToOurFormat(allProducts)
-      saveProductsToCache(convertedAll)
+      const cacheModule = await import('@/lib/cache')
+      cacheModule.saveProductsToCache(convertedAll)
       
       // Filter by category (now using converted format)
       const filteredProducts = convertedAll.filter((product: any) => product.category === category)
@@ -265,7 +266,8 @@ export async function GET(request: Request) {
       })
     } else {
       // For non-category requests, check cache first
-      const cachedAllProducts = getCachedProducts()
+      const cacheModule = await import('@/lib/cache')
+      const cachedAllProducts = cacheModule.getCachedProducts()
       
       if (cachedAllProducts && cachedAllProducts.length > 0) {
         // Use cached products and paginate
@@ -390,7 +392,8 @@ export async function GET(request: Request) {
     // If 502/503/504 error, try to use cached products
     if (error.message?.includes('502') || error.message?.includes('503') || error.message?.includes('504')) {
       console.warn('⚠️  WooCommerce server error, checking cache...')
-      const cachedProducts = getCachedProducts()
+      const cacheModule = await import('@/lib/cache')
+      const cachedProducts = cacheModule.getCachedProducts()
       if (cachedProducts && cachedProducts.length > 0) {
         console.log(`✅ Using cached products (${cachedProducts.length} products) - WooCommerce server is down`)
         
