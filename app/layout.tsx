@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    // Add Google Search Console verification when available
+    google: 'MUrHh9qE4cYSB5Qsq51eUjHOfG_BPTrr2-y_K5ociqM',
   },
   icons: {
     icon: '/trapstar.webp',
