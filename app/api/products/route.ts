@@ -6,21 +6,21 @@ import https from 'https'
 // Cache products for 1 hour, but can be invalidated by webhook
 export const revalidate = 3600 // 1 hour
 
-const WOOCOMMERCE_URL = process.env.WOOCOMMERCE_URL || 'https://payment.trapstarofficial.store/wp'
-const CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || 'ck_065600d609b4e24bd1d8fbbc2cce7ca7c95ff20c'
-const CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || 'cs_5f61b4bb7e6c54ae001f3b12c6d0b9b6bbda6941'
+import { getWooCommerceEnv } from '@/lib/woocommerce-env'
 
-// Fetch products from WooCommerce
-function fetchProductsFromWooCommerce(page = 1, perPage = 100): Promise<any> {
+type WooEnv = { WOOCOMMERCE_URL: string; CONSUMER_KEY: string; CONSUMER_SECRET: string }
+
+// Fetch products from WooCommerce (used when cache is populated via lib/products)
+function fetchProductsFromWooCommerce(env: WooEnv, page = 1, perPage = 100): Promise<any> {
   return new Promise((resolve, reject) => {
-    const auth = Buffer.from(`${CONSUMER_KEY}:${CONSUMER_SECRET}`).toString('base64')
+    const auth = Buffer.from(`${env.CONSUMER_KEY}:${env.CONSUMER_SECRET}`).toString('base64')
     
     let apiPath = `/wp-json/wc/v3/products?page=${page}&per_page=${perPage}`
-    let baseUrl = WOOCOMMERCE_URL
+    let baseUrl = env.WOOCOMMERCE_URL
     
-    if (WOOCOMMERCE_URL.endsWith('/wp') || WOOCOMMERCE_URL.endsWith('/wp/')) {
+    if (env.WOOCOMMERCE_URL.endsWith('/wp') || env.WOOCOMMERCE_URL.endsWith('/wp/')) {
       apiPath = `/wp/wp-json/wc/v3/products?page=${page}&per_page=${perPage}`
-      baseUrl = WOOCOMMERCE_URL.replace(/\/wp\/?$/, '')
+      baseUrl = env.WOOCOMMERCE_URL.replace(/\/wp\/?$/, '')
     }
     
     const apiUrl = new URL(apiPath, baseUrl)

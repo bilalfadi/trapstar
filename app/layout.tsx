@@ -3,13 +3,14 @@ import './globals.css'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import BackToTop from '@/components/BackToTop'
+import StructuredData from '@/components/StructuredData'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Trapstar Official - Premium Streetwear Collection | trapstarofficial.store',
+    default: 'Trapstar Official Store 2026 [Top 10 Streetwear Deals]',
     template: '%s | Trapstar Official',
   },
-  description: 'Shop the latest Trapstar collection featuring premium tracksuits, jackets, shorts, t-shirts, bags, and hoodies. Official Trapstar streetwear with bold designs and quality materials. Free shipping available.',
+  description: 'Shop Trapstar tracksuits, jackets, hoodies, tees, shorts and bags. Premium streetwear, fast shipping, secure checkout, and weekly new drops worldwide.',
   keywords: 'Trapstar, Trapstar Official, streetwear, tracksuits, jackets, hoodies, t-shirts, bags, premium streetwear, trapstarofficial.store',
   authors: [{ name: 'Trapstar Official' }],
   creator: 'Trapstar Official',
@@ -20,8 +21,8 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: 'https://trapstarofficial.store',
     siteName: 'Trapstar Official',
-    title: 'Trapstar Official - Premium Streetwear Collection',
-    description: 'Shop the latest Trapstar collection featuring premium tracksuits, jackets, shorts, t-shirts, bags, and hoodies.',
+    title: 'Trapstar Official Store 2026 [Top 10 Streetwear Deals]',
+    description: 'Shop Trapstar tracksuits, jackets, hoodies, tees, shorts and bags. Premium streetwear, fast shipping, secure checkout, and weekly new drops worldwide.',
     images: [
       {
         url: '/trapstar.webp',
@@ -33,8 +34,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Trapstar Official - Premium Streetwear Collection',
-    description: 'Shop the latest Trapstar collection featuring premium streetwear.',
+    title: 'Trapstar Official Store 2026 [Top 10 Streetwear Deals]',
+    description: 'Shop Trapstar tracksuits, jackets, hoodies, tees, shorts and bags. Premium streetwear, fast shipping, secure checkout, and weekly new drops worldwide.',
     images: ['/trapstar.webp'],
   },
   robots: {
@@ -70,6 +71,7 @@ export default function RootLayout({
         <main className="min-h-screen">
           {children}
         </main>
+        <StructuredData />
         <Footer />
         <BackToTop />
       </body>

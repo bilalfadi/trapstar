@@ -4,10 +4,11 @@
 const https = require('https')
 const fs = require('fs')
 const path = require('path')
+const config = require('./woocommerce_config.js')
 
-const WOOCOMMERCE_URL = process.env.WOOCOMMERCE_URL || 'https://payment.trapstarofficial.store/wp'
-const CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || 'ck_065600d609b4e24bd1d8fbbc2cce7ca7c95ff20c'
-const CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || 'cs_5f61b4bb7e6c54ae001f3b12c6d0b9b6bbda6941'
+const WOOCOMMERCE_URL = config.WOOCOMMERCE_URL
+const CONSUMER_KEY = config.CONSUMER_KEY
+const CONSUMER_SECRET = config.CONSUMER_SECRET
 
 const PRODUCTS_IMAGES_DIR = path.join(process.cwd(), 'public', 'products')
 

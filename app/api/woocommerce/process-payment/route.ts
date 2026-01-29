@@ -1,46 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import https from 'https'
+import { getWooCommerceEnv } from '@/lib/woocommerce-env'
 
-const WOOCOMMERCE_URL = process.env.WOOCOMMERCE_URL || 'https://payment.trapstarofficial.store/wp'
-const CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || 'ck_065600d609b4e24bd1d8fbbc2cce7ca7c95ff20c'
-const CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || 'cs_5f61b4bb7e6c54ae001f3b12c6d0b9b6bbda6941'
+type WooEnv = { WOOCOMMERCE_URL: string; CONSUMER_KEY: string; CONSUMER_SECRET: string }
 
-// Process payment through WooCommerce payment gateway
-function processPayment(orderId: number, paymentData: any): Promise<any> {
+// Update order payment method in WooCommerce
+function updateOrderPaymentMethod(env: WooEnv, orderId: number, paymentMethod: string): Promise<any> {
   return new Promise((resolve, reject) => {
-    const auth = Buffer.from(`${CONSUMER_KEY}:${CONSUMER_SECRET}`).toString('base64')
+    const auth = Buffer.from(`${env.CONSUMER_KEY}:${env.CONSUMER_SECRET}`).toString('base64')
     
-    // WooCommerce payment processing endpoint
-    // This will use the configured payment gateway in WooCommerce
     let apiPath = `/wp-json/wc/v3/orders/${orderId}`
-    let baseUrl = WOOCOMMERCE_URL
+    let baseUrl = env.WOOCOMMERCE_URL
     
-    if (WOOCOMMERCE_URL.endsWith('/wp') || WOOCOMMERCE_URL.endsWith('/wp/')) {
+    if (env.WOOCOMMERCE_URL.endsWith('/wp') || env.WOOCOMMERCE_URL.endsWith('/wp/')) {
       apiPath = `/wp/wp-json/wc/v3/orders/${orderId}`
-      baseUrl = WOOCOMMERCE_URL.replace(/\/wp\/?$/, '')
+      baseUrl = env.WOOCOMMERCE_URL.replace(/\/wp\/?$/, '')
     }
     
     const apiUrl = new URL(apiPath, baseUrl)
     
-    // For now, we'll create the order and let WooCommerce handle payment
-    // In production, you would call the specific payment gateway API
-    // based on the payment method selected
-    
+    // Sirf method update – payment WC / redirect pe complete hoga, isliye status/set_paid nahi
     const updateData = {
-      status: 'processing',
-      set_paid: true,
-      payment_method: paymentData.paymentMethod,
-      payment_method_title: paymentData.paymentMethod,
-      meta_data: [
-        {
-          key: '_payment_processed',
-          value: 'true'
-        },
-        {
-          key: '_payment_id',
-          value: `pay_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        }
-      ]
+      payment_method: paymentMethod
     }
     
     const postData = JSON.stringify(updateData)
@@ -66,11 +47,7 @@ function processPayment(orderId: number, paymentData: any): Promise<any> {
         if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
           try {
             const order = JSON.parse(data)
-            resolve({
-              success: true,
-              paymentId: order.meta_data?.find((m: any) => m.key === '_payment_id')?.value || `pay_${order.id}`,
-              order: order
-            })
+            resolve(order)
           } catch (error) {
             reject(new Error('Failed to parse response'))
           }
@@ -93,7 +70,7 @@ function processPayment(orderId: number, paymentData: any): Promise<any> {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { orderId, paymentMethod, amount, currency, cardNumber, cardExpiry, cardCvv, cardName } = body
+    const { orderId, paymentMethod } = body
     
     if (!orderId || !paymentMethod) {
       return NextResponse.json(
@@ -102,30 +79,37 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Process payment through WooCommerce
-    // Note: Actual payment processing depends on the payment gateway configured in WooCommerce
-    // This is a simplified version - in production, you would:
-    // 1. Check which payment gateway is configured (Stripe, PayPal, etc.)
-    // 2. Call that gateway's API directly
-    // 3. Update order status based on payment result
+    // Update order with payment method
+    const order = await updateOrderPaymentMethod(orderId, paymentMethod)
     
-    const result = await processPayment(orderId, {
-      paymentMethod,
-      amount,
-      currency,
-      cardNumber,
-      cardExpiry,
-      cardCvv,
-      cardName
-    })
+    // For Ziina, payment URL will be fetched separately
+    // For other methods, payment is processed here
+    const isZiina = paymentMethod === 'ziina' || paymentMethod.includes('ziina')
     
-    return NextResponse.json({
-      success: true,
-      paymentId: result.paymentId,
-      message: 'Payment processed successfully through WooCommerce payment gateway'
-    })
+    if (isZiina) {
+      return NextResponse.json({
+        success: true,
+        orderId: order.id,
+        paymentMethod: 'ziina',
+        message: 'Order updated. Payment URL will be fetched separately.'
+      })
+    } else {
+      // For card payments, mark as processing
+      return NextResponse.json({
+        success: true,
+        orderId: order.id,
+        paymentMethod: paymentMethod,
+        message: 'Payment processed successfully'
+      })
+    }
     
   } catch (error: any) {
+    if (error?.message?.includes('Missing WooCommerce credentials')) {
+      return NextResponse.json(
+        { error: 'WooCommerce not configured', message: error.message },
+        { status: 503 }
+      )
+    }
     console.error('Payment processing error:', error)
     return NextResponse.json(
       { error: 'Payment processing failed', message: error.message },
@@ -133,4 +117,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

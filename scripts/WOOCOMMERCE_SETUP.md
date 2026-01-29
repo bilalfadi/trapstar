@@ -56,7 +56,9 @@ This will read `trapstar.csv` and include `product_url` as `externalUrl` in prod
 
 ## API Credentials
 
-Current credentials are stored in `scripts/woocommerce_config.js`:
-- Consumer Key: `ck_71d79aa2cb437c51578a4234f4467abbf9864ed1`
-- Consumer Secret: `cs_982e0f61a12873baa1ff0eed798d1ccbdcd66ab6`
+Do **NOT** store credentials in the repo. Set them as environment variables instead:
+
+- `WOOCOMMERCE_URL` (example: `https://payment.trapstarofficial.store/wp`)
+- `WOOCOMMERCE_CONSUMER_KEY` (example: `ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
+- `WOOCOMMERCE_CONSUMER_SECRET` (example: `cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
 

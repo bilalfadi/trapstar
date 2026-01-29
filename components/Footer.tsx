@@ -4,10 +4,53 @@ export default function Footer() {
   return (
     <footer className="bg-black border-t border-gray-900 mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Compact TOC / Quick navigation (kept clean for UX) */}
+        <div className="mb-10 rounded-xl border border-gray-900 bg-gray-950/60 p-5 md:p-6">
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="w-full">
+              <h2 className="sr-only">Table of contents</h2>
+              <p className="text-gray-300 text-sm md:text-base">
+                Shop <strong>Trapstar</strong> streetwear across tracksuits, jackets, tees, shorts, bags, and hoodies.
+              </p>
+            </div>
+            <Link
+              href="/store"
+              className="inline-flex w-fit items-center justify-center bg-white text-black px-4 py-2 rounded-md text-sm font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Browse store
+            </Link>
+          </div>
+
+          <nav aria-label="Table of contents" className="mt-4">
+            <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm">
+              <li>
+                <Link className="text-gray-300 hover:text-white transition-colors" href="/#collections">
+                  Shop collections
+                </Link>
+              </li>
+              <li>
+                <Link className="text-gray-300 hover:text-white transition-colors" href="/#overview">
+                  Trapstar overview
+                </Link>
+              </li>
+              <li>
+                <Link className="text-gray-300 hover:text-white transition-colors" href="/#shipping-at-a-glance">
+                  Shipping at a glance
+                </Link>
+              </li>
+              <li>
+                <Link className="text-gray-300 hover:text-white transition-colors" href="/#faqs">
+                  FAQs
+                </Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Warehouse */}
           <div>
-            <h4 className="text-white font-medium mb-4">Warehouse</h4>
+            <h3 className="text-white font-medium mb-4">Warehouse</h3>
             <p className="text-gray-400 text-sm leading-relaxed">
               1218 S Glendale Ave, Suite 132, Glendale,<br />
               CA 91205<br />
@@ -17,7 +60,7 @@ export default function Footer() {
 
           {/* Collection */}
           <div>
-            <h4 className="text-white font-medium mb-4">Collection</h4>
+            <h3 className="text-white font-medium mb-4">Collection</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/store" className="text-gray-400 hover:text-white text-sm transition-colors">
@@ -54,7 +97,7 @@ export default function Footer() {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white font-medium mb-4">Quick Links</h4>
+            <h3 className="text-white font-medium mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
                 <Link href="/authenticity-service" className="text-gray-400 hover:text-white text-sm transition-colors">
@@ -101,7 +144,7 @@ export default function Footer() {
 
           {/* Newsletter */}
           <div>
-            <h4 className="text-white font-medium mb-4">Newsletter</h4>
+            <h3 className="text-white font-medium mb-4">Newsletter</h3>
             <form className="space-y-3">
               <div>
                 <input

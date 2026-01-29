@@ -1,4 +1,5 @@
 import productsData from '@/data/products.json'
+import { getWooCommerceEnv } from './woocommerce-env'
 // Cache functions are server-side only - use dynamic imports
 // This prevents 'fs' module from being bundled in client-side code
 
@@ -33,9 +34,7 @@ export interface Product {
 // Fetch products directly from WooCommerce API (server-side only)
 async function fetchProductsFromWooCommerceDirect(): Promise<Product[]> {
   const https = await import('https')
-  const WOOCOMMERCE_URL = process.env.WOOCOMMERCE_URL || 'https://payment.trapstarofficial.store/wp'
-  const CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || 'ck_065600d609b4e24bd1d8fbbc2cce7ca7c95ff20c'
-  const CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || 'cs_5f61b4bb7e6c54ae001f3b12c6d0b9b6bbda6941'
+  const { WOOCOMMERCE_URL, CONSUMER_KEY, CONSUMER_SECRET } = getWooCommerceEnv()
 
   return new Promise((resolve, reject) => {
     const auth = Buffer.from(`${CONSUMER_KEY}:${CONSUMER_SECRET}`).toString('base64')
@@ -419,9 +418,7 @@ async function fetchPaginatedProductsFromWooCommerce(page: number = 1, perPage: 
   }
 }> {
   const https = await import('https')
-  const WOOCOMMERCE_URL = process.env.WOOCOMMERCE_URL || 'https://payment.trapstarofficial.store/wp'
-  const CONSUMER_KEY = process.env.WOOCOMMERCE_CONSUMER_KEY || 'ck_065600d609b4e24bd1d8fbbc2cce7ca7c95ff20c'
-  const CONSUMER_SECRET = process.env.WOOCOMMERCE_CONSUMER_SECRET || 'cs_5f61b4bb7e6c54ae001f3b12c6d0b9b6bbda6941'
+  const { WOOCOMMERCE_URL, CONSUMER_KEY, CONSUMER_SECRET } = getWooCommerceEnv()
 
   const categoryMap: Record<string, string> = {
     'Bags': 'bags',

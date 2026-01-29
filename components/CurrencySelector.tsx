@@ -21,32 +21,31 @@ export default function CurrencySelector({ onCurrencyChange }: CurrencySelectorP
     try {
       let detectedCountry = 'US'
       
-      // Try multiple client-side APIs
+      // Try APIs that work from browser (CORS-friendly). api.country.is first â€“ usually works.
       const apis = [
+        { url: 'https://api.country.is', key: 'country' },
         { url: 'https://ipapi.co/json/', key: 'country_code' },
         { url: 'https://ip-api.com/json/?fields=status,countryCode', key: 'countryCode' },
-        { url: 'https://geojs.io/geo.json', key: 'country' },
-        { url: 'https://api.country.is', key: 'country' }
+        { url: 'https://geojs.io/geo.json', key: 'country' }
       ]
       
       for (const api of apis) {
         try {
-          console.log(`ðŸ” Trying ${api.url}...`)
           const response = await fetch(api.url, {
-            headers: { 'Accept': 'application/json' }
+            headers: { 'Accept': 'application/json' },
+            mode: 'cors'
           })
           
           if (response.ok) {
             const data = await response.json()
-            const country = data[api.key]
+            const country = (data[api.key] || '').toString().toUpperCase()
             
             if (country && country.length === 2) {
-              detectedCountry = country.toUpperCase()
-              console.log(`âœ… Country detected: ${detectedCountry}`)
+              detectedCountry = country
               break
             }
           }
-        } catch (e) {
+        } catch {
           continue
         }
       }
@@ -58,7 +57,7 @@ export default function CurrencySelector({ onCurrencyChange }: CurrencySelectorP
           const data = await response.json()
           if (data.country && data.country !== 'US') {
             detectedCountry = data.country
-            console.log('âœ… Country detected (server):', detectedCountry)
+            console.log('Ã¢Å“â€¦ Country detected (server):', detectedCountry)
           }
         } catch (e) {
           console.log('Server-side failed')

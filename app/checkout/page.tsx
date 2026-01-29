@@ -19,12 +19,14 @@ interface Product {
 function CheckoutContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const productSlug = searchParams.get('product')
+  const productSlug = searchParams?.get('product') || null
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [orderSuccess, setOrderSuccess] = useState(false)
   const [orderError, setOrderError] = useState('')
+  const [createdOrderId, setCreatedOrderId] = useState<number | null>(null)
+  const [orderNumber, setOrderNumber] = useState<string | null>(null)
   const [paymentMethods, setPaymentMethods] = useState<any[]>([])
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('')
   const [currency, setCurrency] = useState('USD')
@@ -83,33 +85,48 @@ function CheckoutContent() {
       const response = await fetch('/api/woocommerce/payment-methods')
       const methods = await response.json()
       
-      // If no methods from WooCommerce, use default methods
-      if (methods.length === 0 || (methods.error && methods.error)) {
-        const defaultMethods = [
-          { id: 'bacs', title: 'Direct Bank Transfer', description: 'Make payment directly into our bank account' },
-          { id: 'stripe', title: 'Credit/Debit Card', description: 'Pay securely with your card' },
-          { id: 'paypal', title: 'PayPal', description: 'Pay via PayPal' }
-        ]
-        setPaymentMethods(defaultMethods)
-        setSelectedPaymentMethod('bacs')
+      console.log('💳 Payment Methods Response:', methods)
+      
+      // Only show payment methods from WooCommerce - no defaults
+      if (methods.error) {
+        console.error('❌ Error from payment methods API:', methods.error)
+        setPaymentMethods([])
+        setSelectedPaymentMethod('')
+        return
+      }
+      
+      // Jo WooCommerce pe enabled hain sirf wahi – koi filter nahi
+      const filteredMethods = (Array.isArray(methods) ? methods : []).filter(
+        (method: any) => method.enabled === true
+      )
+      
+      // Check for Ziina
+      const ziinaMethod = filteredMethods.find((m: any) => 
+        m.id.toLowerCase().includes('ziina') || 
+        m.title?.toLowerCase().includes('ziina') ||
+        m.method_title?.toLowerCase().includes('ziina')
+      )
+      
+      if (ziinaMethod) {
+        console.log('✅ Ziina Payment Method Found in checkout:', ziinaMethod)
       } else {
-        // Filter out COD from WooCommerce methods
-        const filteredMethods = methods.filter((method: any) => method.id !== 'cod')
-        setPaymentMethods(filteredMethods)
-        if (filteredMethods.length > 0) {
-          setSelectedPaymentMethod(filteredMethods[0].id)
-        }
+        console.log('⚠️  Ziina NOT found. Available methods:', filteredMethods.map((m: any) => m.id).join(', '))
+      }
+      
+      // Only set methods from WooCommerce - no fallback
+      console.log(`✅ Setting ${filteredMethods.length} payment methods from WooCommerce`)
+      setPaymentMethods(filteredMethods)
+      if (filteredMethods.length > 0) {
+        setSelectedPaymentMethod(filteredMethods[0].id)
+      } else {
+        setSelectedPaymentMethod('')
+        console.log('⚠️  No payment methods available from WooCommerce')
       }
     } catch (error) {
-      console.error('Error fetching payment methods:', error)
-      // Fallback to default methods
-      const defaultMethods = [
-        { id: 'bacs', title: 'Direct Bank Transfer', description: 'Make payment directly into our bank account' },
-        { id: 'stripe', title: 'Credit/Debit Card', description: 'Pay securely with your card' },
-        { id: 'paypal', title: 'PayPal', description: 'Pay via PayPal' }
-      ]
-      setPaymentMethods(defaultMethods)
-      setSelectedPaymentMethod('bacs')
+      console.error('❌ Error fetching payment methods:', error)
+      // No fallback - only show what comes from WooCommerce
+      setPaymentMethods([])
+      setSelectedPaymentMethod('')
     }
   }
   
@@ -172,24 +189,10 @@ function CheckoutContent() {
       return
     }
     
-    if (!selectedPaymentMethod) {
-      setOrderError('Please select a payment method')
+    if (!selectedPaymentMethod || paymentMethods.length === 0) {
+      setOrderError('No payment method available. Please contact support.')
       setSubmitting(false)
       return
-    }
-    
-    // For card payments, validate card details
-    if (selectedPaymentMethod === 'stripe' || selectedPaymentMethod.includes('card') || selectedPaymentMethod.includes('credit')) {
-      if (!formData.cardNumber || !formData.cardExpiry || !formData.cardCvv || !formData.cardName) {
-        setOrderError('Please fill in all payment details')
-        setSubmitting(false)
-        return
-      }
-    }
-    
-    // For Bank Transfer, no card details needed
-    if (selectedPaymentMethod === 'bacs') {
-      // No card validation needed
     }
     
     try {
@@ -219,45 +222,42 @@ function CheckoutContent() {
         })
       })
       
+      // Check order response status first
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json().catch(() => ({ error: 'Failed to create order' }))
+        console.error('❌ Order Creation Error:', errorData)
+        
+        // Provide user-friendly error messages
+        let errorMessage = 'Failed to create order'
+        if (orderResponse.status === 502 || orderResponse.status === 503) {
+          errorMessage = 'WooCommerce server is temporarily unavailable. Please try again in a moment.'
+        } else if (orderResponse.status === 504) {
+          errorMessage = 'Request timed out. Please try again.'
+        } else {
+          errorMessage = errorData.error || errorData.message || 'Failed to create order. Please try again.'
+        }
+        
+        setOrderError(errorMessage)
+        setSubmitting(false)
+        return
+      }
+      
       const orderData = await orderResponse.json()
       
-      if (!orderResponse.ok || !orderData.success) {
-        setOrderError(orderData.error || 'Failed to create order')
+      if (!orderData.success) {
+        console.error('❌ Order creation failed:', orderData)
+        setOrderError(orderData.error || orderData.message || 'Failed to create order')
         setSubmitting(false)
         return
       }
       
-      // Process payment through WooCommerce payment gateway
-      // Use base USD price for WooCommerce (they handle currency conversion)
-      const currentPrice = product.discountPrice || product.price || 0
-      const paymentResponse = await fetch('/api/woocommerce/process-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          orderId: orderData.order.id,
-          paymentMethod: selectedPaymentMethod,
-          amount: currentPrice,
-          currency: 'USD',
-          cardNumber: (selectedPaymentMethod === 'stripe' || selectedPaymentMethod.includes('card')) ? formData.cardNumber?.replace(/\s/g, '') : undefined,
-          cardExpiry: (selectedPaymentMethod === 'stripe' || selectedPaymentMethod.includes('card')) ? formData.cardExpiry : undefined,
-          cardCvv: (selectedPaymentMethod === 'stripe' || selectedPaymentMethod.includes('card')) ? formData.cardCvv : undefined,
-          cardName: (selectedPaymentMethod === 'stripe' || selectedPaymentMethod.includes('card')) ? formData.cardName : undefined
-        })
-      })
-      
-      const paymentData = await paymentResponse.json()
-      
-      if (!paymentResponse.ok || !paymentData.success) {
-        setOrderError(paymentData.error || 'Payment failed. Please check your payment details.')
-        setSubmitting(false)
-        return
-      }
-      
-      // Payment processed successfully through WooCommerce gateway
-      // Order is already updated by payment processing API
-      setOrderSuccess(true)
+      // Order ban gaya – hamesha order-pay pe bhejo, payment wahan WooCommerce se complete hoga
+      const createdOrderId = orderData.order?.id
+      const orderNumber = orderData.order?.orderNumber || orderData.order?.number || orderData.order?.id
+      setCreatedOrderId(createdOrderId)
+      setOrderNumber(orderNumber ? String(orderNumber) : null)
+      router.push(`/order-pay/${createdOrderId}`)
+      return
     } catch (error: any) {
       setOrderError(error.message || 'An error occurred')
     } finally {
@@ -301,17 +301,53 @@ function CheckoutContent() {
             </div>
           </div>
           <h1 className="text-3xl font-bold mb-3 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            Payment Successful!
+            Order Placed Successfully!
           </h1>
-          <p className="text-gray-400 mb-8 leading-relaxed">
-            Your order has been placed and payment has been processed successfully. You will receive an order confirmation email shortly.
+          
+          {createdOrderId && (
+            <div className="mb-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+              <p className="text-sm text-gray-400 mb-2">Order Number</p>
+              <p className="text-2xl font-bold text-white">
+                #{orderNumber || createdOrderId}
+              </p>
+              {product && (
+                <p className="text-sm text-gray-400 mt-2">
+                  {product.title}
+                </p>
+              )}
+            </div>
+          )}
+          
+          <p className="text-gray-400 mb-6 leading-relaxed">
+            {createdOrderId 
+              ? `Your order has been placed successfully in WooCommerce. Order #${orderNumber || createdOrderId} has been created and you will receive a confirmation email shortly.`
+              : 'Your order has been placed and payment has been processed successfully. You will receive an order confirmation email shortly.'
+            }
           </p>
-          <Link
-            href="/store"
-            className="bg-white text-black px-8 py-4 font-semibold hover:bg-gray-200 transition-all duration-300 inline-block rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105"
-          >
-            Continue Shopping
-          </Link>
+          
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {createdOrderId && (
+              <Link
+                href={`/order-pay/${createdOrderId}`}
+                className="bg-blue-600 text-white px-6 py-3 font-semibold hover:bg-blue-700 transition-all duration-300 inline-block rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+              >
+                View Order
+              </Link>
+            )}
+            <Link
+              href="/store"
+              className="bg-white text-black px-6 py-3 font-semibold hover:bg-gray-200 transition-all duration-300 inline-block rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              Continue Shopping
+            </Link>
+          </div>
+          
+          <div className="mt-6 pt-6 border-t border-gray-700">
+            <p className="text-xs text-gray-500">
+              ✅ Order created in WooCommerce<br/>
+              📧 Confirmation email will be sent to your email address
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -602,7 +638,8 @@ function CheckoutContent() {
                     value={selectedPaymentMethod}
                     onChange={(e) => setSelectedPaymentMethod(e.target.value)}
                     required
-                    className="w-full bg-gray-800/50 border-2 border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all"
+                    disabled={paymentMethods.length === 0}
+                    className="w-full bg-gray-800/50 border-2 border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {paymentMethods.length > 0 ? (
                       paymentMethods.map((method: any) => (
@@ -611,109 +648,90 @@ function CheckoutContent() {
                         </option>
                       ))
                     ) : (
-                      <>
-                        <option value="bacs">Direct Bank Transfer - Make payment directly into our bank account</option>
-                        <option value="stripe">Credit/Debit Card - Pay securely with your card</option>
-                        <option value="paypal">PayPal - Pay via PayPal</option>
-                      </>
+                      <option value="">No payment methods available</option>
                     )}
                   </select>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {selectedPaymentMethod === 'bacs' && 'You will receive bank details after order confirmation'}
-                    {selectedPaymentMethod === 'stripe' && 'Payment will be processed securely through card'}
-                    {selectedPaymentMethod === 'paypal' && 'You will be redirected to PayPal for payment'}
-                  </p>
+                  {selectedPaymentMethod && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      {(() => {
+                        const method = paymentMethods.find((m: any) => m.id === selectedPaymentMethod)
+                        if (method?.description) {
+                          return method.description
+                        }
+                        // Fallback descriptions for common methods
+                        if (selectedPaymentMethod === 'bacs' || selectedPaymentMethod.includes('bacs')) {
+                          return 'You will receive bank details after order confirmation'
+                        }
+                        if (selectedPaymentMethod === 'stripe' || selectedPaymentMethod.includes('stripe') || selectedPaymentMethod.includes('card')) {
+                          return 'Payment will be processed securely through card'
+                        }
+                        if (selectedPaymentMethod === 'paypal' || selectedPaymentMethod.includes('paypal')) {
+                          return 'You will be redirected to PayPal for payment'
+                        }
+                        if (selectedPaymentMethod === 'ziina' || selectedPaymentMethod.includes('ziina')) {
+                          return 'You will be redirected to Ziina Pay to complete your payment'
+                        }
+                        return 'Complete your payment using the selected method'
+                      })()}
+                    </p>
+                  )}
                 </div>
                 
                 {/* Payment Method Specific Fields */}
                 
-                {/* Card Payment Details */}
+                {/* Ziina Payment – card details Ziina ke page pe enter honge (redirect ke baad) */}
+                {(selectedPaymentMethod === 'ziina' || selectedPaymentMethod.includes('ziina')) && (
+                  <div className="mb-6 bg-gradient-to-br from-purple-900/20 to-purple-800/10 border border-purple-700/30 p-6 rounded-xl">
+                    <h4 className="text-base font-semibold mb-4 text-gray-200 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      Ziina Payment
+                    </h4>
+                    <div className="space-y-2 text-sm text-gray-400">
+                      <p>You will be redirected to Ziina to complete your payment securely.</p>
+                      <p className="text-gray-300 font-medium">
+                        Card details will be entered on Ziina&apos;s secure page after you click &quot;Place Order&quot; — not here.
+                      </p>
+                      <div className="mt-3 space-y-1">
+                        <p>✅ Secure payment through Ziina Pay</p>
+                        <p>✅ No need to enter card details on this page</p>
+                        <p>✅ Enter card on Ziina&apos;s page after redirect</p>
+                        <p>✅ Fast and secure checkout</p>
+                      </div>
+                      <p className="mt-3 text-blue-400">
+                        ℹ️ After clicking &quot;Place Order&quot;, you will be taken to the next page, then redirected to Ziina to enter your card and complete payment.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Card / Stripe – card details next page (order-pay) pe WooCommerce/Stripe form me enter honge */}
                 {(selectedPaymentMethod === 'stripe' || 
                   selectedPaymentMethod.includes('card') || 
-                  selectedPaymentMethod.includes('credit')) && (
-                  <div className="mb-6">
-                    <h4 className="text-sm font-semibold mb-3 text-gray-300">Card Details</h4>
-                    <div className="mb-4">
-                      <label className="block text-sm font-semibold mb-2 text-gray-300">
-                        Cardholder Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="cardName"
-                        value={formData.cardName}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="John Doe"
-                        className="w-full bg-gray-800/50 border-2 border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all"
-                      />
-                    </div>
-                    
-                    <div className="mb-4">
-                      <label className="block text-sm font-semibold mb-2 text-gray-300">
-                        Card Number <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="cardNumber"
-                        value={formData.cardNumber}
-                        onChange={(e) => {
-                          let value = e.target.value.replace(/\s/g, '')
-                          if (value.length <= 16) {
-                            value = value.match(/.{1,4}/g)?.join(' ') || value
-                            setFormData(prev => ({ ...prev, cardNumber: value }))
-                          }
-                        }}
-                        required
-                        placeholder="1234 5678 9012 3456"
-                        maxLength={19}
-                        className="w-full bg-gray-800/50 border-2 border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all"
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-semibold mb-2 text-gray-300">
-                          Expiry Date <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="cardExpiry"
-                          value={formData.cardExpiry}
-                          onChange={(e) => {
-                            let value = e.target.value.replace(/\D/g, '')
-                            if (value.length <= 4) {
-                              if (value.length >= 2) {
-                                value = value.slice(0, 2) + '/' + value.slice(2)
-                              }
-                              setFormData(prev => ({ ...prev, cardExpiry: value }))
-                            }
-                          }}
-                          required
-                          placeholder="MM/YY"
-                          maxLength={5}
-                          className="w-full bg-gray-800/50 border-2 border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all"
-                        />
+                  selectedPaymentMethod.includes('credit')) && 
+                  selectedPaymentMethod !== 'ziina' && 
+                  !selectedPaymentMethod.includes('ziina') && (
+                  <div className="mb-6 bg-gradient-to-br from-gray-900/50 to-gray-800/30 border border-gray-700 p-6 rounded-xl">
+                    <h4 className="text-base font-semibold mb-4 text-gray-200 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                      Card Payment
+                    </h4>
+                    <div className="space-y-2 text-sm text-gray-400">
+                      <p>You will complete payment on the next page securely.</p>
+                      <p className="text-gray-300 font-medium">
+                        Card details will be entered on the payment page after you click &quot;Place Order&quot; — not here.
+                      </p>
+                      <div className="mt-3 space-y-1">
+                        <p>✅ Secure payment through our payment gateway</p>
+                        <p>✅ No need to enter card details on this page</p>
+                        <p>✅ Enter card on the next (payment) page</p>
                       </div>
-                      <div>
-                        <label className="block text-sm font-semibold mb-2 text-gray-300">
-                          CVV <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="cardCvv"
-                          value={formData.cardCvv}
-                          onChange={(e) => {
-                            let value = e.target.value.replace(/\D/g, '')
-                            if (value.length <= 4) {
-                              setFormData(prev => ({ ...prev, cardCvv: value }))
-                            }
-                          }}
-                          required
-                          placeholder="123"
-                          maxLength={4}
-                          className="w-full bg-gray-800/50 border-2 border-gray-700 text-white px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:border-transparent transition-all"
-                        />
-                      </div>
+                      <p className="mt-3 text-blue-400">
+                        ℹ️ After clicking &quot;Place Order&quot;, you will be taken to the payment page to enter your card and complete the transaction.
+                      </p>
                     </div>
                   </div>
                 )}

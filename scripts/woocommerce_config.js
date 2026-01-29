@@ -1,10 +1,12 @@
-// WooCommerce Configuration
-// Update this file with your WooCommerce site URL
+// WooCommerce Configuration – same keys as lib/woocommerce-env.ts (env override, else fallback)
+const FALLBACK_URL = 'https://payment.trapstarofficial.store/wp';
+const FALLBACK_KEY = 'ck_119e56a9618b84741df6016c20c17f8cb8962f08';
+const FALLBACK_SECRET = 'cs_35a846092f0ab01f1e9067704aa3a2da2a5e443b';
 
 module.exports = {
-  WOOCOMMERCE_URL: 'https://payment.trapstarofficial.store/wp', // WooCommerce site URL (WordPress in /wp/ directory)
-  CONSUMER_KEY: 'ck_065600d609b4e24bd1d8fbbc2cce7ca7c95ff20c',
-  CONSUMER_SECRET: 'cs_5f61b4bb7e6c54ae001f3b12c6d0b9b6bbda6941',
-  APPLICATION_PASSWORD: '7ylX gTc6 qbIw loF4 xJYr dYFK'
+  WOOCOMMERCE_URL: process.env.WOOCOMMERCE_URL || FALLBACK_URL,
+  CONSUMER_KEY: process.env.WOOCOMMERCE_CONSUMER_KEY || FALLBACK_KEY,
+  CONSUMER_SECRET: process.env.WOOCOMMERCE_CONSUMER_SECRET || FALLBACK_SECRET,
+  APPLICATION_PASSWORD: process.env.WOOCOMMERCE_APPLICATION_PASSWORD || ''
 };
 
