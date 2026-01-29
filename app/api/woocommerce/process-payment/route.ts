@@ -69,6 +69,7 @@ function updateOrderPaymentMethod(env: WooEnv, orderId: number, paymentMethod: s
 // POST - Process payment
 export async function POST(request: NextRequest) {
   try {
+    const env = getWooCommerceEnv()
     const body = await request.json()
     const { orderId, paymentMethod } = body
     
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Update order with payment method
-    const order = await updateOrderPaymentMethod(orderId, paymentMethod)
+    const order = await updateOrderPaymentMethod(env, orderId, paymentMethod)
     
     // For Ziina, payment URL will be fetched separately
     // For other methods, payment is processed here
