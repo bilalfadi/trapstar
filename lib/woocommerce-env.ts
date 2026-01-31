@@ -3,9 +3,9 @@
  * Uses env vars if set; otherwise fallback (pehle jaisa).
  */
 
-const FALLBACK_URL = 'https://payment.trapstarofficial.store/wp'
-const FALLBACK_KEY = 'ck_119e56a9618b84741df6016c20c17f8cb8962f08'
-const FALLBACK_SECRET = 'cs_35a846092f0ab01f1e9067704aa3a2da2a5e443b'
+const FALLBACK_URL = 'https://payment.trapstarofficial.store/'
+const FALLBACK_KEY = 'ck_c20ac943e12b15217711aa1bb556f021b3494c1f'
+const FALLBACK_SECRET = 'cs_133dfd017d60c461496be3b6b58e3360e7947582'
 
 export function getWooCommerceEnv() {
   const WOOCOMMERCE_URL = process.env.WOOCOMMERCE_URL || FALLBACK_URL

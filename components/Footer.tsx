@@ -174,7 +174,7 @@ export default function Footer() {
         <div className="mt-8 pt-8 border-t border-gray-900">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="text-gray-400 text-sm text-center md:text-left">
-              <p>© {new Date().getFullYear()} Trapstar Official. All rights reserved.</p>
+              <p suppressHydrationWarning>© {new Date().getFullYear()} Trapstar Official. All rights reserved.</p>
               <p className="mt-2">
                 <a href="mailto:support@trapstarofficial.store" className="hover:text-white transition-colors">
                   support@trapstarofficial.store

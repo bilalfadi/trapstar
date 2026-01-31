@@ -15,7 +15,7 @@ export default function TermsOfServicePage() {
       <h1 className="text-4xl font-bold text-white mb-8">Terms of Service</h1>
       
       <div className="prose prose-invert max-w-none">
-        <p className="text-gray-400 mb-6">Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        <p className="text-gray-400 mb-6" suppressHydrationWarning>Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         
         <section className="mb-8">
           <h2 className="text-2xl font-semibold text-white mb-4">1. Agreement to Terms</h2>
