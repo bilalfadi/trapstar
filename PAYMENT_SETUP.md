@@ -93,6 +93,4 @@ Agar theme ya custom code me **"pending"** status ke orders ke liye payment bloc
 | Pay for order | Settings / theme me "pay for existing orders" allow karo |
 | Order status | Pending payment = sahi; block mat karo |
 | Order-pay page | Direct link se open karke Ziina form/redirect check karo |
-| Theme/plugins | Koi "cannot be paid for" logic to nahi |
-
-Jab backend pe order-pay link se **Ziina form ya Ziina redirect** dikhne lagega, tab humara site bhi Ziina URL use kar payega (agar backend HTML/redirect me Ziina link de).
+| Theme/plugins | Koi "cannot be paid for" logic to nahi |Jab backend pe order-pay link se **Ziina form ya Ziina redirect** dikhne lagega, tab humara site bhi Ziina URL use kar payega (agar backend HTML/redirect me Ziina link de).

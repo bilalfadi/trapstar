@@ -779,32 +779,7 @@ function CheckoutContent() {
                 
                 {/* Payment Method Specific Fields */}
                 
-                {/* Ziina Payment – card details Ziina ke page pe enter honge (redirect ke baad) */}
-                {(selectedPaymentMethod === 'ziina' || selectedPaymentMethod.includes('ziina')) && (
-                  <div className="mb-6 bg-gradient-to-br from-purple-900/20 to-purple-800/10 border border-purple-700/30 p-6 rounded-xl">
-                    <h4 className="text-base font-semibold mb-4 text-gray-200 flex items-center gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                      Ziina Payment
-                    </h4>
-                    <div className="space-y-2 text-sm text-gray-400">
-                      <p>You will be redirected to Ziina to complete your payment securely.</p>
-                      <p className="text-gray-300 font-medium">
-                        Card details will be entered on Ziina&apos;s secure page after you click &quot;Place Order&quot; — not here.
-                      </p>
-                      <div className="mt-3 space-y-1">
-                        <p>✅ Secure payment through Ziina Pay</p>
-                        <p>✅ No need to enter card details on this page</p>
-                        <p>✅ Enter card on Ziina&apos;s page after redirect</p>
-                        <p>✅ Fast and secure checkout</p>
-                      </div>
-                      <p className="mt-3 text-blue-400">
-                        ℹ️ After clicking &quot;Place Order&quot;, the payment form will load on this same page. Enter your card there and complete payment.
-                      </p>
-                    </div>
-                  </div>
-                )}
+                {/* Ziina – no extra description box; sirf payment method select dikhe */}
 
                 {/* Card / Stripe – card details next page (order-pay) pe WooCommerce/Stripe form me enter honge */}
                 {(selectedPaymentMethod === 'stripe' || 
