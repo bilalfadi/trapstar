@@ -151,6 +151,7 @@ export default function Footer() {
                   type="text"
                   placeholder="Name"
                   className="w-full bg-gray-900 text-white px-4 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-white border border-gray-800"
+                  suppressHydrationWarning
                 />
               </div>
               <div>
@@ -158,6 +159,7 @@ export default function Footer() {
                   type="email"
                   placeholder="Email"
                   className="w-full bg-gray-900 text-white px-4 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-white border border-gray-800"
+                  suppressHydrationWarning
                 />
               </div>
               <button

@@ -129,6 +129,14 @@ export async function GET(
     
     const order = await fetchOrderFromWooCommerce(env, orderId, orderKey || undefined)
 
+    // Ensure billing object (WC sometimes uses billing_address)
+    if (!order.billing && (order as any).billing_address) {
+      order.billing = (order as any).billing_address
+    }
+    if (!order.billing || typeof order.billing !== 'object') {
+      order.billing = { first_name: '', last_name: '', email: '', phone: '', address_1: '', city: '', state: '', postcode: '', country: '' }
+    }
+
     // Enrich line_items with product image (WC order line_items don't include image)
     if (order.line_items && Array.isArray(order.line_items)) {
       const enriched = await Promise.all(

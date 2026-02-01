@@ -53,7 +53,8 @@ function fetchPaymentMethods(env: WooEnv): Promise<any> {
                   }
                 }).filter(Boolean)
             
-            const enabledMethods = list.filter((m: any) => m && m.enabled === true)
+            const isEnabled = (m: any) => m && (m.enabled === true || m.enabled === 'yes')
+            const enabledMethods = list.filter(isEnabled)
             console.log(`✅ Payment methods: ${list.length} total, ${enabledMethods.length} enabled`)
             
             resolve(enabledMethods)

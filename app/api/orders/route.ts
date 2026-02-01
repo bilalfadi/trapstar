@@ -61,6 +61,56 @@ function updateOrderInWooCommerce(env: WooEnv, orderId: number, updateData: any)
   })
 }
 
+// Fetch order by ID (for order_key after create)
+function fetchOrderById(env: WooEnv, orderId: number): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const auth = Buffer.from(`${env.CONSUMER_KEY}:${env.CONSUMER_SECRET}`).toString('base64')
+    let apiPath = `/wp-json/wc/v3/orders/${orderId}`
+    let baseUrl = env.WOOCOMMERCE_URL
+    if (env.WOOCOMMERCE_URL.endsWith('/wp') || env.WOOCOMMERCE_URL.endsWith('/wp/')) {
+      apiPath = `/wp/wp-json/wc/v3/orders/${orderId}`
+      baseUrl = env.WOOCOMMERCE_URL.replace(/\/wp\/?$/, '')
+    }
+    const apiUrl = new URL(apiPath, baseUrl)
+    const options = {
+      hostname: apiUrl.hostname,
+      port: apiUrl.port || 443,
+      path: apiUrl.pathname,
+      method: 'GET',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/json'
+      }
+    }
+    const req = https.request(options, (res) => {
+      let data = ''
+      res.on('data', (chunk) => { data += chunk })
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+          try {
+            resolve(JSON.parse(data))
+          } catch {
+            reject(new Error('Failed to parse'))
+          }
+        } else {
+          reject(new Error(`Status ${res.statusCode}`))
+        }
+      })
+    })
+    req.on('error', reject)
+    req.end()
+  })
+}
+
+function extractOrderKey(order: any): string | undefined {
+  if (!order) return undefined
+  const fromMeta = order.meta_data?.find((m: any) => m.key === '_order_key')?.value
+  if (fromMeta && typeof fromMeta === 'string') return fromMeta
+  if (order.order_key && typeof order.order_key === 'string') return order.order_key
+  if (order.key && typeof order.key === 'string') return order.key
+  return undefined
+}
+
 // Create order in WooCommerce
 function createOrderInWooCommerce(env: WooEnv, orderData: any): Promise<any> {
   return new Promise((resolve, reject) => {
@@ -140,7 +190,7 @@ export async function POST(request: NextRequest) {
   try {
     const env = getWooCommerceEnv()
     const body = await request.json()
-    const { productId, quantity, size, customer, paymentId, paymentMethod, paid } = body
+    const { productId, quantity, size, customer, paymentId, paymentMethod, paid, lineTotal } = body
     
     if (!productId || !customer) {
       return NextResponse.json(
@@ -219,7 +269,9 @@ export async function POST(request: NextRequest) {
     }
     
     // Prepare order data for WooCommerce
+    // currency: USD required – Ziina/WooCommerce "supported currencies" error avoid karne ke liye
     const orderData = {
+      currency: 'USD',
       payment_method: paymentMethod || '',
       payment_method_title: paymentMethodTitle, // From WooCommerce payment gateway
       set_paid: paid === true, // Set to true if payment is already received
@@ -247,6 +299,10 @@ export async function POST(request: NextRequest) {
         {
           product_id: productId,
           quantity: quantity || 1,
+          // Line total bhejo taake order $0 na aaye (WooCommerce product price 0 ho to bhi sahi total dikhe)
+          ...(typeof lineTotal === 'number' && lineTotal > 0
+            ? { subtotal: String(lineTotal), total: String(lineTotal) }
+            : {}),
           meta_data: size ? [
             {
               key: 'Size',
@@ -300,20 +356,22 @@ export async function POST(request: NextRequest) {
     // Agar Ziina payment hai, order-pay page trigger kare taake Ziina URL generate ho (order meta me save ho)
     if (paymentMethod && (paymentMethod.toLowerCase().includes('ziina') || paymentMethodTitle.toLowerCase().includes('ziina'))) {
       try {
-        const orderKeyMeta = order.meta_data?.find((m: any) => m.key === '_order_key')
-        const orderKey = orderKeyMeta?.value
-        if (orderKey) {
+        const ziinaOrderKey = extractOrderKey(order)
+        if (ziinaOrderKey) {
           let baseUrl = env.WOOCOMMERCE_URL
-          if (env.WOOCOMMERCE_URL.endsWith('/wp') || env.WOOCOMMERCE_URL.endsWith('/wp/')) {
-            baseUrl = env.WOOCOMMERCE_URL.replace(/\/wp\/?$/, '')
-          }
+          const hasWp = env.WOOCOMMERCE_URL.endsWith('/wp') || env.WOOCOMMERCE_URL.endsWith('/wp/')
+          if (hasWp) baseUrl = env.WOOCOMMERCE_URL.replace(/\/wp\/?$/, '')
           const host = baseUrl.replace(/^https?:\/\//, '').split('/')[0]
           const scheme = baseUrl.startsWith('https') ? 'https' : 'http'
-          const orderPayUrl = `${scheme}://${host}/wp/checkout/order-pay/${order.id}/?pay_for_order=true&key=${orderKey}`
+          const pathPrefix = hasWp ? '/wp' : ''
+          const orderPayUrl = `${scheme}://${host}${pathPrefix}/checkout/order-pay/${order.id}/?pay_for_order=true&key=${ziinaOrderKey}`
           
           // Order-pay page pe GET request kare taake Ziina plugin trigger ho (payment URL order meta me save ho)
           // Note: Ye request server-side hai, so Ziina plugin client-side JS se trigger nahi hoga
           // Lekin kuch plugins server-side hooks use karte hain, isliye try karte hain
+          // Backend checkout jaisa request – Ziina plugin wahi response de jisme payment URL ho
+          const origin = `${scheme}://${host}${pathPrefix || ''}`
+          const referer = `${origin}/checkout/`
           await new Promise<void>((resolve) => {
             const urlObj = new URL(orderPayUrl)
             const req = https.request({
@@ -322,10 +380,13 @@ export async function POST(request: NextRequest) {
               path: urlObj.pathname + urlObj.search,
               method: 'GET',
               headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; TrapstarBot/1.0)',
-                'Accept': 'text/html'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                Referer: referer,
+                Origin: origin
               },
-              timeout: 3000
+              timeout: 5000
             }, (res) => {
               let data = ''
               res.on('data', (chunk) => { data += chunk })
@@ -355,6 +416,42 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    let orderKey = extractOrderKey(order)
+    if (!orderKey) {
+      await new Promise((r) => setTimeout(r, 1200))
+      try {
+        const refetched = await fetchOrderById(env, order.id)
+        orderKey = extractOrderKey(refetched)
+        if (!orderKey && refetched?.meta_data) {
+          const metaKeys = refetched.meta_data.map((m: any) => m.key)
+          console.warn('[orders] Refetch order #' + order.id + ' – meta_data keys:', metaKeys.join(', '))
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
+    if (!orderKey) {
+      await new Promise((r) => setTimeout(r, 2000))
+      try {
+        const refetched2 = await fetchOrderById(env, order.id)
+        orderKey = extractOrderKey(refetched2)
+      } catch (_) {
+        // ignore
+      }
+    }
+    if (!orderKey) {
+      await new Promise((r) => setTimeout(r, 2500))
+      try {
+        const refetched3 = await fetchOrderById(env, order.id)
+        orderKey = extractOrderKey(refetched3)
+      } catch (_) {
+        // ignore
+      }
+    }
+    if (!orderKey) {
+      console.warn('[orders] Order #' + order.id + ' – orderKey nahi mila. Top keys:', order ? Object.keys(order).join(', ') : 'no order')
+    }
+
     return NextResponse.json({
       success: true,
       order: {
@@ -362,7 +459,8 @@ export async function POST(request: NextRequest) {
         orderNumber: order.number,
         status: order.status,
         total: order.total,
-        currency: order.currency
+        currency: order.currency,
+        orderKey: orderKey || undefined
       }
     })
   } catch (error: any) {

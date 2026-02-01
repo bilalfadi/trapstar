@@ -312,7 +312,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
               </select>
             </div>
 
-            {/* Buy Now Button */}
+            {/* Buy Now → yahi checkout (frontend); order yahan se, sirf payment backend/Ziina pe */}
             <Link
               href={`/checkout?product=${product.slug}`}
               className="bg-white text-black px-8 py-4 font-semibold hover:bg-gray-200 transition-colors duration-200 mb-4 w-full text-center block"

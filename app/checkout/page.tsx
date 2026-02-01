@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PriceDisplay from '@/components/PriceDisplay'
 import { convertPrice, formatPrice, getCurrencyInfo } from '@/lib/currency'
@@ -18,7 +18,6 @@ interface Product {
 
 function CheckoutContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const productSlug = searchParams?.get('product') || null
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -31,6 +30,9 @@ function CheckoutContent() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('')
   const [currency, setCurrency] = useState('USD')
   const [countryCode, setCountryCode] = useState('US')
+  const [showPaymentFrame, setShowPaymentFrame] = useState(false)
+  const [paymentFrameUrl, setPaymentFrameUrl] = useState<string | null>(null)
+  const [paymentLinkByEmail, setPaymentLinkByEmail] = useState(false)
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -95,10 +97,9 @@ function CheckoutContent() {
         return
       }
       
-      // Jo WooCommerce pe enabled hain sirf wahi – koi filter nahi
-      const filteredMethods = (Array.isArray(methods) ? methods : []).filter(
-        (method: any) => method.enabled === true
-      )
+      // Jo WooCommerce pe enabled hain sirf wahi – enabled = true ya "yes" dono accept
+      const isEnabled = (method: any) => method && (method.enabled === true || method.enabled === 'yes')
+      const filteredMethods = (Array.isArray(methods) ? methods : []).filter(isEnabled)
       
       // Check for Ziina
       const ziinaMethod = filteredMethods.find((m: any) => 
@@ -206,6 +207,8 @@ function CheckoutContent() {
           productId: product.woocommerceId,
           quantity: 1,
           size: formData.size,
+          // Line total bhejo taake WooCommerce order me amount $0 na aaye (Ziina / order-pay pe sahi total dikhe)
+          lineTotal: product.discountPrice ?? product.price ?? 0,
           paymentMethod: selectedPaymentMethod,
           paid: false, // Will be updated after payment
           customer: {
@@ -251,12 +254,76 @@ function CheckoutContent() {
         return
       }
       
-      // Order ban gaya – hamesha order-pay pe bhejo, payment wahan WooCommerce se complete hoga
       const createdOrderId = orderData.order?.id
       const orderNumber = orderData.order?.orderNumber || orderData.order?.number || orderData.order?.id
+      const orderKeyFromCreate = orderData.order?.orderKey || null
       setCreatedOrderId(createdOrderId)
       setOrderNumber(orderNumber ? String(orderNumber) : null)
-      router.push(`/order-pay/${createdOrderId}`)
+
+      // Hybrid: Next.js checkout → order WooCommerce me → user ko payment URL pe redirect (Ziina direct ya WordPress order-pay – dono OK)
+      const method = (selectedPaymentMethod || '').toLowerCase()
+      const needsPayment = method.includes('ziina') || method.includes('card') || method.includes('stripe') || method.includes('paypal')
+      const BACKEND_CHECKOUT_BASE = 'https://payment.trapstarofficial.store'
+      const buildOrderPayUrl = (oid: number, key: string) =>
+        `${BACKEND_CHECKOUT_BASE}/checkout/order-pay/${oid}/?pay_for_order=true&key=${encodeURIComponent(key)}`
+
+      if (needsPayment && createdOrderId) {
+        const fetchPayUrl = async () => {
+          const res = await fetch('/api/woocommerce/get-payment-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId: createdOrderId, orderKey: orderKeyFromCreate }),
+          })
+          const data = await res.json().catch(() => ({}))
+          const payUrl =
+            data.redirectUrl ||
+            data.redirect_url ||
+            data.paymentUrl ||
+            data.payment_url ||
+            data.fallbackPayUrl ||
+            data.fallback_pay_url ||
+            ''
+          return { payUrl: typeof payUrl === 'string' ? payUrl.trim() : '', data, ok: res.ok }
+        }
+
+        let { payUrl: toRedirect, data: urlData, ok: urlResOk } = await fetchPayUrl()
+        if (toRedirect.startsWith('http')) {
+          window.location.replace(toRedirect)
+          return
+        }
+        if (urlData.paymentLinkByEmail && urlResOk) {
+          setPaymentLinkByEmail(true)
+          setOrderSuccess(true)
+          setSubmitting(false)
+          return
+        }
+
+        await new Promise((r) => setTimeout(r, 2000))
+        const { payUrl: toRedirect2, data: urlData2, ok: urlRes2Ok } = await fetchPayUrl()
+        if (toRedirect2.startsWith('http')) {
+          window.location.replace(toRedirect2)
+          return
+        }
+        if (urlData2.paymentLinkByEmail && urlRes2Ok) {
+          setPaymentLinkByEmail(true)
+          setOrderSuccess(true)
+          setSubmitting(false)
+          return
+        }
+
+        // Frontend fallback: orderKey + orderId ho to khud order-pay URL bana kar redirect – link frontend pe zaroor aaye
+        if (orderKeyFromCreate && typeof orderKeyFromCreate === 'string' && orderKeyFromCreate.length > 0) {
+          const orderPayUrl = buildOrderPayUrl(createdOrderId, orderKeyFromCreate)
+          window.location.replace(orderPayUrl)
+          return
+        }
+        setOrderError('Payment page could not be loaded. Order #' + (orderNumber || createdOrderId) + ' is placed. Please check your email for the payment link or try again.')
+        setSubmitting(false)
+        return
+      }
+
+      // COD / bacs / baki: success dikhao
+      setOrderSuccess(true)
       return
     } catch (error: any) {
       setOrderError(error.message || 'An error occurred')
@@ -319,21 +386,15 @@ function CheckoutContent() {
           )}
           
           <p className="text-gray-400 mb-6 leading-relaxed">
-            {createdOrderId 
-              ? `Your order has been placed successfully in WooCommerce. Order #${orderNumber || createdOrderId} has been created and you will receive a confirmation email shortly.`
-              : 'Your order has been placed and payment has been processed successfully. You will receive an order confirmation email shortly.'
+            {paymentLinkByEmail
+              ? `Your order #${orderNumber || createdOrderId} has been placed. Please check your email for the payment link to complete payment securely.`
+              : createdOrderId 
+                ? `Your order has been placed successfully in WooCommerce. Order #${orderNumber || createdOrderId} has been created and you will receive a confirmation email shortly.`
+                : 'Your order has been placed and payment has been processed successfully. You will receive an order confirmation email shortly.'
             }
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {createdOrderId && (
-              <Link
-                href={`/order-pay/${createdOrderId}`}
-                className="bg-blue-600 text-white px-6 py-3 font-semibold hover:bg-blue-700 transition-all duration-300 inline-block rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105"
-              >
-                View Order
-              </Link>
-            )}
             <Link
               href="/store"
               className="bg-white text-black px-6 py-3 font-semibold hover:bg-gray-200 transition-all duration-300 inline-block rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105"
@@ -345,9 +406,48 @@ function CheckoutContent() {
           <div className="mt-6 pt-6 border-t border-gray-700">
             <p className="text-xs text-gray-500">
               ✅ Order created in WooCommerce<br/>
-              📧 Confirmation email will be sent to your email address
+              {paymentLinkByEmail ? '📧 Payment link will be sent to your email – complete payment from that link' : '📧 Confirmation email will be sent to your email address'}
             </p>
           </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (showPaymentFrame && paymentFrameUrl && product) {
+    const displayPrice = product.discountPrice || product.price || 0
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white flex flex-col">
+        <div className="flex-none border-b border-gray-800 bg-black/80 backdrop-blur px-4 py-4">
+          <div className="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl font-bold">Complete payment</h1>
+              <p className="text-gray-400 text-sm">
+                Order #{createdOrderId || ''} · Ziina
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400">Amount:</span>
+              <span className="font-bold">{formatPrice(displayPrice, 'USD', '$')}</span>
+              <Link
+                href="/store"
+                className="ml-2 text-sm text-gray-400 hover:text-white underline"
+              >
+                Back to store
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="flex-1 min-h-0 p-4">
+          <div className="max-w-4xl mx-auto h-full min-h-[70vh] rounded-xl overflow-hidden border border-gray-800 bg-gray-900">
+            <iframe
+              src={paymentFrameUrl}
+              title="Payment"
+              className="w-full h-full min-h-[70vh] border-0"
+              sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+            />
+          </div>
+          <p className="text-center text-gray-500 text-sm mt-3">Complete your payment below. You stay on this site.</p>
         </div>
       </div>
     )
@@ -669,7 +769,7 @@ function CheckoutContent() {
                           return 'You will be redirected to PayPal for payment'
                         }
                         if (selectedPaymentMethod === 'ziina' || selectedPaymentMethod.includes('ziina')) {
-                          return 'You will be redirected to Ziina Pay to complete your payment'
+                          return 'After Place Order, complete payment on this page (Ziina)'
                         }
                         return 'Complete your payment using the selected method'
                       })()}
@@ -700,7 +800,7 @@ function CheckoutContent() {
                         <p>✅ Fast and secure checkout</p>
                       </div>
                       <p className="mt-3 text-blue-400">
-                        ℹ️ After clicking &quot;Place Order&quot;, you will be taken to the next page, then redirected to Ziina to enter your card and complete payment.
+                        ℹ️ After clicking &quot;Place Order&quot;, the payment form will load on this same page. Enter your card there and complete payment.
                       </p>
                     </div>
                   </div>
