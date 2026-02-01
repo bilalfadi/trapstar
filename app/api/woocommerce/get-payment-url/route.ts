@@ -282,7 +282,7 @@ export async function POST(request: NextRequest) {
 
     const numOrderId = Number(orderId)
 
-    function buildFallbackUrl(key: string) {
+    const buildFallbackUrl = (key: string) => {
       let baseUrl = env.WOOCOMMERCE_URL
       const hasWp = env.WOOCOMMERCE_URL.endsWith('/wp') || env.WOOCOMMERCE_URL.endsWith('/wp/')
       if (hasWp) baseUrl = env.WOOCOMMERCE_URL.replace(/\/wp\/?$/, '')
