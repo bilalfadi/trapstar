@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'MUrHh9qE4cYSB5Qsq51eUjHOfG_BPTrr2-y_K5ociqM',
+    google: 'ai1JftrucVpYibqFivgnBnfxcRwk_d_WWke5mAJu8ig',
   },
   icons: {
     icon: '/trapstar.webp',

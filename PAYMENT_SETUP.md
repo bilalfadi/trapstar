@@ -85,9 +85,7 @@ Agar theme ya custom code me **"pending"** status ke orders ke liye payment bloc
 
 ---
 
-### 6. Short checklist (backend)
-
-| Step | Kya karna hai |
+### 6. Short checklist (backend)| Step | Kya karna hai |
 |------|----------------|
 | Ziina enabled | WooCommerce → Payments → Ziina ON, keys sahi |
 | Pay for order | Settings / theme me "pay for existing orders" allow karo |
